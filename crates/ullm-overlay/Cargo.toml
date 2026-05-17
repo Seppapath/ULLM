@@ -1,0 +1,20 @@
+[package]
+name = "ullm-overlay"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Application-layer onion routing. Nested ChaCha20-Poly1305 layers over X25519 ECDH; in-process relays."
+
+[dependencies]
+ullm-core = { workspace = true }
+chacha20poly1305 = { workspace = true }
+x25519-dalek = { workspace = true }
+hkdf = { workspace = true }
+sha2 = { workspace = true }
+rand_core = { workspace = true }
+serde = { workspace = true }
+postcard = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true }

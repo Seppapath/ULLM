@@ -1,0 +1,21 @@
+[package]
+name = "ullm-log-auditor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Standalone auditor for the ullm transparency log. Verifies signed tree heads + inclusion proofs + witness cosignatures."
+
+[[bin]]
+name = "ullm-log-auditor"
+path = "src/main.rs"
+
+[dependencies]
+ullm-transparency = { workspace = true }
+ed25519-dalek = { workspace = true }
+hex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true }

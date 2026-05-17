@@ -1,0 +1,21 @@
+[package]
+name = "ullm-kvcloak"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "KV-Cloak: secret linear transform + per-block permutation for LLM KV-cache rows."
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-crypto = { workspace = true }
+ullm-zk = { workspace = true }
+ff = { workspace = true }
+parking_lot = "0.12"
+hkdf = { workspace = true }
+sha2 = { workspace = true }
+zeroize = { workspace = true }
+rand_core = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true }

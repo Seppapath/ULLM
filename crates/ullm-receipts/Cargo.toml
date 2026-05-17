@@ -1,0 +1,14 @@
+[package]
+name = "ullm-receipts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "TEE-signed usage receipts for plaintext-free billing."
+
+[dependencies]
+ullm-core = { workspace = true }
+ed25519-dalek = { workspace = true }
+serde = { workspace = true }
+serde-big-array = { workspace = true }
+postcard = { workspace = true }
+thiserror = { workspace = true }

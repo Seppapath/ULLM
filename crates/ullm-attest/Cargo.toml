@@ -1,0 +1,25 @@
+[package]
+name = "ullm-attest"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Attestation evidence types and a mock verifier for local dev."
+
+[dependencies]
+ullm-core = { workspace = true }
+ed25519-dalek = { workspace = true }
+p256 = { workspace = true }
+p384 = { workspace = true }
+signature = { workspace = true }
+sha2 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde-big-array = { workspace = true }
+postcard = { workspace = true }
+rand_core = { workspace = true }
+subtle = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true }

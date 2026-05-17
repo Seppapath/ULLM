@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# P10-FIX-E: CODEOWNERS for files where a malicious or careless PR
+# can subvert the gateway/TEE production hardening. Branch protection
+# on `main` MUST require code-owner review for these patterns — that's
+# the policy hook that prevents one reviewer from approving a PR that
+# both removes the `compile_error!` gate AND amends the CI strings
+# check in the same change.
+#
+# Until a real maintainer set is in place, every entry routes to
+# `@ullm-security` (a placeholder team handle). Replace with the real
+# GitHub team handle before enabling CODEOWNERS on the production
+# repo, and configure branch protection to require approval from this
+# CODEOWNERS file.
+
+# === Compile-time hardening gates ===
+# `dev-keys` vs `prod` mutual-exclusion `compile_error!` lines.
+# Removing or weakening these would silently re-enable the dev
+# endpoint in a "prod" build.
+crates/ullm-gateway/src/lib.rs   @ullm-security
+crates/ullm-tee/src/lib.rs       @ullm-security
+
+# === CI gates ===
+# The release-promotion strings-check + feature-matrix definitions
+# live here. Modifications require security review.
+.github/workflows/ci.yml         @ullm-security
+.github/CODEOWNERS               @ullm-security
+
+# === Security-critical crates ===
+# Crypto, attestation, transparency-log, and shutdown surfaces.
+crates/ullm-core/src/shutdown.rs      @ullm-security
+crates/ullm-crypto/                   @ullm-security
+crates/ullm-handshake/                @ullm-security
+crates/ullm-attest/                   @ullm-security
+crates/ullm-transparency/             @ullm-security
+crates/ullm-tee/src/nonce_registry.rs @ullm-security
+crates/ullm-tee/src/tenant.rs         @ullm-security
+crates/ullm-gateway/src/rate_limit.rs @ullm-security
+crates/ullm-gateway/src/proxy.rs      @ullm-security
+
+# === Security policy ===
+SECURITY.md                       @ullm-security
+CHANGELOG.md                      @ullm-security
+docs/OPERATIONS.md                @ullm-security
+docs/audit/                       @ullm-security
+
+# === Build-reproducibility infra ===
+# A tampered flake.nix could publish a non-reproducible image with
+# tampered measurements — review every change.
+infra/                            @ullm-security
+Cargo.toml                        @ullm-security
+Cargo.lock                        @ullm-security

@@ -1,0 +1,29 @@
+[package]
+name = "ullm-demo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "End-to-end demo: spawns gateway + TEE in-process, runs a session."
+
+[[bin]]
+name = "ullm-demo"
+path = "src/main.rs"
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-client = { workspace = true }
+ullm-tee = { workspace = true }
+ullm-gateway = { workspace = true }
+ullm-receipts = { workspace = true }
+ullm-tls = { workspace = true }
+ullm-zk = { workspace = true }
+ullm-model = { workspace = true }
+ed25519-dalek = { workspace = true }
+rand = { workspace = true }
+tokio = { workspace = true }
+axum = { workspace = true }
+axum-server = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+hex = { workspace = true }

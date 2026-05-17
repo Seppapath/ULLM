@@ -1,0 +1,26 @@
+[package]
+name = "ullm-ts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WebAssembly bindings: handshake builder + frame codec for browser clients."
+
+[lib]
+name = "ullm_ts"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-crypto = { workspace = true }
+ullm-wire = { workspace = true }
+ullm-handshake = { workspace = true }
+ullm-attest = { workspace = true }
+ullm-receipts = { workspace = true }
+ed25519-dalek = { workspace = true }
+postcard = { workspace = true }
+rand = { workspace = true }
+rand_core = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+wasm-bindgen = "0.2"
+getrandom = { version = "0.2", features = ["js"] }

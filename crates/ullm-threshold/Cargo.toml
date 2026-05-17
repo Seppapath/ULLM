@@ -1,0 +1,25 @@
+[package]
+name = "ullm-threshold"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "FROST-Ed25519 t-of-n threshold signing for federation receipts and service identity."
+
+[features]
+# P4-10: trusted-dealer DKG is the SPOF model — fine for tests + demos
+# but never appropriate for production. Gated behind this feature so a
+# `--no-default-features` prod build compiles `distribute_with_trusted_dealer`
+# out entirely. Decentralized DKG (Pedersen / Lindell-Jarecki) is the
+# replacement; that lives behind its own feature when added.
+default = ["trusted-dealer"]
+trusted-dealer = []
+
+[dependencies]
+ullm-core = { workspace = true }
+ed25519-dalek = { workspace = true }
+frost-ed25519 = { workspace = true }
+rand_core = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true }

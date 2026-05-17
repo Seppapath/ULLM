@@ -1,0 +1,51 @@
+[package]
+name = "ullm-tee"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "TEE-side service: handshake responder + mock inference + signed receipts."
+
+[[bin]]
+name = "ullm-tee"
+path = "src/bin/server.rs"
+
+[features]
+default = ["dev-keys"]
+# Exposes `/v1/devkeys` (unauthenticated trust-root + receipt-pk + weight
+# commit) for the WASM/Python demos. Production deployments build with
+# `--no-default-features` (or `--features prod` instead) so the endpoint is
+# compiled out entirely.
+dev-keys = []
+# Convenience alias for prod-tight builds.
+prod = []
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-crypto = { workspace = true }
+ullm-wire = { workspace = true }
+ullm-handshake = { workspace = true }
+ullm-attest = { workspace = true }
+ullm-receipts = { workspace = true }
+ullm-kvcloak = { workspace = true }
+ullm-model = { workspace = true }
+ullm-zk = { workspace = true }
+hkdf = { workspace = true }
+ff = "0.13"
+ed25519-dalek = { workspace = true }
+sha2 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+postcard = { workspace = true }
+rand_core = { workspace = true }
+rand = { workspace = true }
+zeroize = { workspace = true }
+# P10-FIX-D: constant-time bearer-token compare on the management
+# `/metrics` listener.
+subtle = { workspace = true }
+tokio = { workspace = true }
+axum = { workspace = true }
+futures-util = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+hex = { workspace = true }

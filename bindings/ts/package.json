@@ -1,0 +1,14 @@
+{
+  "name": "ullm",
+  "version": "0.2.0-rc.1",
+  "description": "Browser client primitives for the Ultimate Private LLM Communication Layer.",
+  "license": "Apache-2.0",
+  "main": "pkg/ullm_ts.js",
+  "types": "pkg/ullm_ts.d.ts",
+  "scripts": {
+    "build": "wasm-pack build --target web --out-dir pkg --release"
+  },
+  "devDependencies": {
+    "wasm-pack": "^0.13.0"
+  }
+}

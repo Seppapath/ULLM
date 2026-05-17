@@ -1,0 +1,19 @@
+[package]
+name = "ullm-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "PyO3 bindings for the ullm client SDK."
+
+[lib]
+name = "ullm_py"
+crate-type = ["cdylib"]
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-client = { workspace = true }
+ullm-receipts = { workspace = true }
+ed25519-dalek = { workspace = true }
+tokio = { workspace = true }
+hex = { workspace = true }
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py39"] }

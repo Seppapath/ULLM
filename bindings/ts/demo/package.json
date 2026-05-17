@@ -1,0 +1,13 @@
+{
+  "name": "ullm-browser-demo",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "serve": "node serve.mjs",
+    "e2e": "node run_e2e.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

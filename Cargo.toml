@@ -1,0 +1,117 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ullm-core",
+    "crates/ullm-crypto",
+    "crates/ullm-wire",
+    "crates/ullm-handshake",
+    "crates/ullm-attest",
+    "crates/ullm-receipts",
+    "crates/ullm-tls",
+    "crates/ullm-kvcloak",
+    "crates/ullm-zk",
+    "crates/ullm-model",
+    "crates/ullm-mpc",
+    "crates/ullm-federation",
+    "crates/ullm-threshold",
+    "crates/ullm-overlay",
+    "crates/ullm-bench",
+    "crates/ullm-transparency",
+    "tools/ullm-log-auditor",
+    "crates/ullm-phala",
+    "crates/ullm-llm",
+    "crates/ullm-tee",
+    "crates/ullm-client",
+    "crates/ullm-gateway",
+    "tools/ullm-demo",
+    "tools/ullm-watcher",
+    "tools/ullm-phase4-demo",
+    "bindings/python",
+    "bindings/ts",
+]
+
+[workspace.package]
+version = "0.2.0-rc1"
+edition = "2021"
+rust-version = "1.78"
+license = "Apache-2.0"
+repository = "https://github.com/example/ullm"
+
+[workspace.dependencies]
+ullm-core = { path = "crates/ullm-core" }
+ullm-crypto = { path = "crates/ullm-crypto" }
+ullm-wire = { path = "crates/ullm-wire" }
+ullm-handshake = { path = "crates/ullm-handshake" }
+ullm-attest = { path = "crates/ullm-attest" }
+ullm-receipts = { path = "crates/ullm-receipts" }
+ullm-tls = { path = "crates/ullm-tls" }
+ullm-kvcloak = { path = "crates/ullm-kvcloak" }
+ullm-zk = { path = "crates/ullm-zk" }
+ullm-model = { path = "crates/ullm-model" }
+ullm-mpc = { path = "crates/ullm-mpc" }
+ullm-federation = { path = "crates/ullm-federation" }
+ullm-threshold = { path = "crates/ullm-threshold" }
+ullm-overlay = { path = "crates/ullm-overlay" }
+criterion = { version = "0.5", features = ["html_reports"] }
+ullm-transparency = { path = "crates/ullm-transparency" }
+ullm-client = { path = "crates/ullm-client" }
+ullm-gateway = { path = "crates/ullm-gateway" }
+ullm-tee = { path = "crates/ullm-tee" }
+
+ml-kem = "0.2"
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+# Phase 4 demo + tests pull x25519-dalek directly.
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+chacha20poly1305 = "0.10"
+aes-gcm-siv = "0.11"
+hkdf = "0.12"
+sha2 = "0.10"
+hmac = "0.12"
+# P12-FIX-A: exact-pin `subtle`. The crate's constant-time guarantees
+# are sensitive to compiler changes; the workspace floor matches what
+# the audit history was verified against. Bumps go through CODEOWNERS
+# review (see `.github/CODEOWNERS`).
+subtle = "=2.6.1"
+zeroize = { version = "1.7", features = ["zeroize_derive"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+rand = "0.8"
+
+bytes = "1.6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+postcard = { version = "1", features = ["use-std"] }
+hex = "0.4"
+bitflags = "2.5"
+serde-big-array = "0.5"
+
+tokio = { version = "1.38", features = ["full"] }
+tokio-tungstenite = { version = "0.23", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+tower = "0.4"
+hyper = "1.4"
+axum = { version = "0.7", features = ["ws", "macros"] }
+
+thiserror = "1"
+anyhow = "1"
+rustls = { version = "0.23", default-features = false, features = ["std", "ring", "tls12"] }
+rustls-post-quantum = "0.2"
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring"] }
+rcgen = { version = "0.13", default-features = false, features = ["ring", "pem"] }
+rustls-pemfile = "2"
+rustls-pki-types = "1"
+axum-server = { version = "0.7", features = ["tls-rustls"] }
+webpki-roots = "0.26"
+sha1 = "0.10"
+p256 = { version = "0.13", default-features = false, features = ["ecdsa", "std"] }
+p384 = { version = "0.13", default-features = false, features = ["ecdsa", "std"] }
+signature = "2"
+frost-ed25519 = "2"
+ff = "0.13"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"

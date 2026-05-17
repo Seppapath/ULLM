@@ -1,0 +1,18 @@
+[package]
+name = "ullm-zk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Halo2 Poseidon preimage prover + verifier for Phase 2 output-digest binding."
+
+[dependencies]
+ullm-core = { workspace = true }
+halo2_proofs = "0.3"
+halo2_gadgets = "0.3"
+ff = "0.13"
+pasta_curves = "0.5"
+rand = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true }

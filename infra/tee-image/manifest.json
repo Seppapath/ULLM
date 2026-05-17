@@ -1,0 +1,28 @@
+{
+  "version": "0.1.0",
+  "build_system": "nix-flake",
+  "reproducibility": {
+    "source_date_epoch": 1715000000,
+    "rust_toolchain": "1.78.0",
+    "target_triple": "x86_64-unknown-linux-gnu"
+  },
+  "reference_measurements": {
+    "_comment": "Replace these with the MRTD/RTMR hashes captured from the first reproducible build. Two independent builders must produce the same hash before this manifest is considered production-ready.",
+    "image_sha256": "TBD-after-first-build",
+    "mrtd_sha384": "TBD-after-first-tdx-build",
+    "rtmr_0_sha384": "TBD",
+    "rtmr_1_sha384": "TBD",
+    "rtmr_2_sha384": "TBD",
+    "rtmr_3_sha384": "TBD",
+    "nvidia_rim_sha256": "TBD"
+  },
+  "build_inputs": {
+    "rust_toolchain_sha256": "TBD",
+    "nixpkgs_rev": "TBD-pinned-via-flake.lock"
+  },
+  "notes": [
+    "This manifest is the authoritative list of expected measurements for a v0.1.0 production TEE image.",
+    "Clients reject any attestation whose MRTD does not appear here.",
+    "Two independent builds at the same flake revision must produce identical image_sha256; if they differ, the build is not reproducible and must not be deployed."
+  ]
+}

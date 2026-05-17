@@ -1,0 +1,19 @@
+[package]
+name = "ullm-handshake"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "PQXDH-style 1-RTT handshake state machine."
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-crypto = { workspace = true }
+sha2 = { workspace = true }
+serde = { workspace = true }
+serde-big-array = { workspace = true }
+postcard = { workspace = true }
+rand_core = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true }

@@ -1,0 +1,18 @@
+[package]
+name = "ullm-mpc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Honest-but-curious 2PC over the synthetic model via additive secret sharing on Fp."
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-model = { workspace = true }
+ullm-zk = { workspace = true }
+ff = { workspace = true }
+rand_core = { workspace = true }
+zeroize = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true }

@@ -1,0 +1,25 @@
+[package]
+name = "ullm-phala"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Phala Network DePIN adapter — wraps a Phala TEE worker as a federation Provider."
+
+[features]
+default = []
+# Enable to make real HTTP calls to Phala's worker API. Off by default so
+# unit tests run offline.
+live = ["dep:tokio", "dep:hyper", "dep:hyper-util", "dep:http-body-util"]
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-attest = { workspace = true }
+ullm-federation = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, optional = true }
+hyper = { workspace = true, optional = true }
+hyper-util = { version = "0.1", optional = true }
+http-body-util = { version = "0.1", optional = true }

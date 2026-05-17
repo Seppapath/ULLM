@@ -1,0 +1,44 @@
+[package]
+name = "ullm-gateway"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Blind WebSocket reverse proxy with attestation passthrough + per-tenant rate limiting."
+
+[[bin]]
+name = "ullm-gateway"
+path = "src/bin/server.rs"
+
+[features]
+default = ["dev-keys"]
+# Exposes `/v1/devkeys` as a passthrough to the upstream TEE's dev endpoint.
+# Mirrors the TEE-side feature flag so a prod build (`--no-default-features
+# --features prod`) compiles the route + handler out entirely.
+dev-keys = []
+prod = []
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-tls = { workspace = true }
+ullm-transparency = { workspace = true }
+ed25519-dalek = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+postcard = { workspace = true }
+serde-big-array = { workspace = true }
+axum = { workspace = true }
+axum-server = { workspace = true }
+futures-util = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+hex = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+# P10-FIX-D: constant-time bearer-token compare on the management
+# `/metrics` listener; defends the token check against timing side
+# channels.
+subtle = { workspace = true }

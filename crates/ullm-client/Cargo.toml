@@ -1,0 +1,44 @@
+[package]
+name = "ullm-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "End-user SDK: PQ-hybrid handshake, encrypted streaming, attestation verification."
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-crypto = { workspace = true }
+ullm-wire = { workspace = true }
+ullm-handshake = { workspace = true }
+ullm-attest = { workspace = true }
+ullm-receipts = { workspace = true }
+ullm-tls = { workspace = true }
+ed25519-dalek = { workspace = true }
+tokio-rustls = { workspace = true }
+rustls = { workspace = true }
+rustls-pki-types = { workspace = true }
+serde = { workspace = true }
+postcard = { workspace = true }
+rand_core = { workspace = true }
+rand = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+ullm-tee = { workspace = true }
+ullm-gateway = { workspace = true }
+ullm-attest = { workspace = true }
+ullm-receipts = { workspace = true }
+ullm-tls = { workspace = true }
+ullm-zk = { workspace = true }
+ullm-model = { workspace = true }
+ullm-watcher = { path = "../../tools/ullm-watcher" }
+ed25519-dalek = { workspace = true }
+axum = { workspace = true }
+axum-server = { workspace = true }

@@ -1,0 +1,63 @@
+[package]
+name = "ullm-bench"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Criterion microbenchmarks across the ullm stack. Drives the per-component SLO document."
+publish = false
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-crypto = { workspace = true }
+ullm-wire = { workspace = true }
+ullm-handshake = { workspace = true }
+ullm-attest = { workspace = true }
+ullm-zk = { workspace = true }
+ullm-model = { workspace = true }
+ullm-mpc = { workspace = true }
+ullm-overlay = { workspace = true }
+ullm-receipts = { workspace = true }
+ed25519-dalek = { workspace = true }
+ff = { workspace = true }
+hex = { workspace = true }
+rand = { workspace = true }
+x25519-dalek = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "kex"
+harness = false
+
+[[bench]]
+name = "aead"
+harness = false
+
+[[bench]]
+name = "ratchet"
+harness = false
+
+[[bench]]
+name = "wire"
+harness = false
+
+[[bench]]
+name = "handshake"
+harness = false
+
+[[bench]]
+name = "attest"
+harness = false
+
+[[bench]]
+name = "layer_zk"
+harness = false
+
+[[bench]]
+name = "mpc"
+harness = false
+
+[[bench]]
+name = "onion"
+harness = false

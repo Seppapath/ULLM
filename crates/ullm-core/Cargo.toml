@@ -1,0 +1,20 @@
+[package]
+name = "ullm-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared types, errors, and protocol constants for ullm."
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+hex = { workspace = true }
+# Needed for the cross-platform `shutdown_signal()` helper. `signal`
+# pulls in `tokio::signal::ctrl_c` + the Unix `signal::unix` module;
+# `sync` pulls in `tokio::sync::watch` used by the `ShutdownBroadcaster`
+# (P10-FIX-A) so a single SIGTERM/SIGINT can fan out to multiple
+# listeners without the registration race that `Notify::notify_waiters`
+# has. `rt` + `macros` are needed for the embedded `#[tokio::test]`
+# regression test.
+tokio = { workspace = true, features = ["signal", "sync", "rt", "macros"] }
+tracing = { workspace = true }

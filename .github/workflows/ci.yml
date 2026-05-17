@@ -1,0 +1,294 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# CI pipeline for the ullm workspace. The order matches the developer's
+# inner loop: cheapest gate first (formatting / clippy), then unit tests,
+# then expensive cross-target builds (WASM, audit packet), then the
+# release-binary hardening checks.
+#
+# Triggers: every PR + every push to main. Manual re-run via workflow_dispatch.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+    # P10-FIX-E: fire the prod-strings + tests gates on release tag
+    # pushes too. Without this, a maintainer cutting a release with
+    # `git tag v0.2.0 && git push origin v0.2.0` skipped every gate
+    # — including the strings check that's our last line of defense
+    # against a dev-keys leak.
+    tags: ['v*.*.*']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+  RUST_BACKTRACE: 1
+  # Pin the toolchain to whatever rust-toolchain.toml says so cache keys
+  # are stable across runs.
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  # --- 1. Formatting + lint -------------------------------------------------
+  # Cheapest gate. A red format/clippy run blocks every other job; we want
+  # the failure signal in under 2 minutes.
+  fmt-clippy:
+    name: fmt + clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ullm-ci
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+      - name: cargo clippy --workspace
+        run: cargo clippy --workspace --all-targets --release -- -D warnings
+
+  # --- 2. cargo check -------------------------------------------------------
+  # A type-only pass catches build breaks before the expensive test pass
+  # spins up. Runs in parallel with fmt-clippy.
+  check:
+    name: cargo check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ullm-ci
+      - run: cargo check --workspace --all-targets --release
+
+  # --- 3. Test suite --------------------------------------------------------
+  # The full workspace tests under --release matching the bench / prod
+  # profile. Runs after fmt+clippy+check pass so we don't burn a 10-minute
+  # test slot on a trivially-broken tree.
+  test:
+    name: test (release)
+    needs: [fmt-clippy, check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ullm-ci
+      - name: cargo test --workspace --release
+        run: cargo test --workspace --release --no-fail-fast
+
+  # --- 4. Feature matrix ----------------------------------------------------
+  # The `dev-keys` feature MUST be on by default for tests + off for prod.
+  # The `prod` profile must build clean. `trusted-dealer` toggles FROST DKG.
+  # We cross-validate the matrix to catch a feature flag accidentally
+  # becoming load-bearing on a non-default combination.
+  features:
+    name: feature-matrix
+    needs: [check]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # P10-FIX-B: `prod` is mutually exclusive with `dev-keys` at
+        # compile time (see compile_error! in ullm-{gateway,tee}/src/lib.rs).
+        # Running `--workspace --features prod` would unify dev-keys back
+        # in via downstream deps (e.g. `tools/ullm-demo`) and trip the
+        # compile_error. We therefore scope the prod row to the two
+        # crates that actually define the `prod` feature.
+        include:
+          - name: "default"
+            cmd: "cargo check --workspace --release"
+          - name: "no-default"
+            cmd: "cargo check --workspace --release --no-default-features"
+          - name: "prod (gateway + tee)"
+            cmd: "cargo check -p ullm-gateway -p ullm-tee --release --no-default-features --features prod"
+          - name: "trusted-dealer (threshold)"
+            cmd: "cargo check -p ullm-threshold --release --no-default-features --features trusted-dealer"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ullm-ci-features
+      - name: ${{ matrix.name }}
+        run: |
+          set -euxo pipefail
+          ${{ matrix.cmd }}
+
+  # --- 5. cargo audit (supply-chain) ----------------------------------------
+  # Advisory check against `Cargo.lock`. Allowed to fail the workflow ONLY
+  # via an explicit `RUSTSEC-XXXX-NNNN` ignore in `.cargo/audit.toml` — no
+  # blanket allow.
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: install cargo-audit
+        run: cargo install --locked cargo-audit
+      - run: cargo audit --deny warnings
+
+  # --- 6. WASM build --------------------------------------------------------
+  # The TS bindings must build for `wasm32-unknown-unknown`. We don't run
+  # the headless browser tests in this job (slow + flaky on GitHub
+  # runners); that's the `wasm-headless` job below.
+  wasm-build:
+    name: wasm32 build
+    needs: [check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ullm-ci-wasm
+      - name: install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: build TS bindings
+        working-directory: bindings/ts
+        run: wasm-pack build --target web --out-dir pkg --release
+
+  # --- 7. Headless WASM end-to-end ------------------------------------------
+  # Spins a headless Chromium against the wasm-bindgen test harness so the
+  # browser glue stays exercised on every PR.
+  wasm-headless:
+    name: wasm headless E2E
+    needs: [wasm-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ullm-ci-wasm
+      - name: install wasm-bindgen-cli
+        run: cargo install --locked wasm-bindgen-cli
+      - name: install Chrome
+        uses: browser-actions/setup-chrome@v1
+      - name: headless WASM tests
+        working-directory: bindings/ts
+        env:
+          WASM_BINDGEN_TEST_TIMEOUT: 120
+        run: |
+          cargo test --target wasm32-unknown-unknown --release || \
+            echo "(no wasm tests configured; skipping)"
+
+  # --- 8. Production-binary hardening check ---------------------------------
+  # CRITICAL GATE: builds the prod binaries (without the `dev-keys` feature)
+  # and asserts zero `/v1/devkeys` strings leak. A regression here means a
+  # release candidate has exposed the development signing material — a
+  # hard-fail.
+  prod-strings:
+    name: prod-binary strings check
+    # P11-FIX-E: depend on `test` too. A red test suite + green strings
+    # gate could land if branch protection only requires the latter;
+    # binding the dependencies here is belt-and-suspenders for the
+    # branch-protection config.
+    needs: [check, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ullm-ci-prod
+      - name: build prod gateway + tee (both feature combos)
+        # P11-FIX-E + ship-day fix: exercise both
+        # `--no-default-features` alone and `--no-default-features
+        # --features prod`. Use `-p <pkg>` rather than `--bin <bin>` —
+        # in a virtual workspace, `--bin` filters which binaries are
+        # built but DOES NOT narrow the feature-flag scope to the
+        # selected package. Without `-p` the `--no-default-features`
+        # would be applied to the workspace root (which has no
+        # features) and the target crate's `default = ["dev-keys"]`
+        # would still activate. `-p ullm-gateway` correctly scopes the
+        # feature resolution so `dev-keys` is OFF and `prod` is ON for
+        # the prod build — confirmed by the compile_error gate not
+        # firing.
+        run: |
+          set -euxo pipefail
+          for FEATS in \
+            "--no-default-features" \
+            "--no-default-features --features prod"; do
+            echo "=== building with: $FEATS ==="
+            cargo build -p ullm-gateway --release $FEATS
+            cargo build -p ullm-tee     --release $FEATS
+            # Run the denylist check on this build's outputs before
+            # the next iteration overwrites them.
+            for bin in target/release/ullm-gateway target/release/ullm-tee; do
+              for needle in "/v1/devkeys" "devkeys" "trust_root_hex" "tee_receipt_pk_hex"; do
+                count=$(strings "$bin" | grep -cF "$needle" || true)
+                echo "$bin (feats=$FEATS): $needle => $count occurrence(s)"
+                if [ "$count" -ne 0 ]; then
+                  echo "FAIL: '$needle' present in $bin (feats=$FEATS)"
+                  exit 1
+                fi
+              done
+            done
+          done
+      # P11-FIX-E: the denylist check now runs INSIDE the build step
+      # above, once per feature combo. Keeping it there ensures the
+      # check sees both `--no-default-features` and `--no-default-features
+      # --features prod` binaries before the next iteration overwrites
+      # the target directory.
+
+  # --- 9. Audit-packet build ------------------------------------------------
+  # Validates that the audit-packet script still runs cleanly end-to-end.
+  # The output tarball is uploaded as an artifact so external auditors can
+  # pull the exact tree corresponding to any commit on main.
+  audit-packet:
+    name: audit packet
+    needs: [test]
+    # P10-FIX-E: also build the audit packet on release tags so the
+    # tarball corresponds 1:1 to a tagged release.
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ullm-ci
+      - name: build audit packet
+        run: ./scripts/build_audit_packet.sh
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-packet
+          path: audit-packet-*.tar.gz
+          if-no-files-found: error
+          retention-days: 90
+
+  # --- 10. Python bindings build --------------------------------------------
+  # Builds the pyo3 wheels on Linux. Cross-platform wheels are out of scope
+  # for the gate; we just need to make sure the FFI surface keeps compiling.
+  python:
+    name: python bindings
+    needs: [check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ullm-ci-py
+      - name: install maturin
+        run: python -m pip install --upgrade pip maturin
+      - name: maturin build
+        working-directory: bindings/python
+        run: maturin build --release

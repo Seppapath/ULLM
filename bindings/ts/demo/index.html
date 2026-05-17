@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ullm — browser demo</title>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        max-width: 720px;
+        margin: 32px auto;
+        padding: 0 16px;
+        color: #1a1a1a;
+      }
+      h1 { font-weight: 600; font-size: 1.5rem; }
+      .config {
+        background: #f6f7f8;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        margin-bottom: 16px;
+      }
+      .config label { display: block; margin: 8px 0 4px; font-weight: 500; }
+      .config input { width: 100%; box-sizing: border-box; padding: 6px 8px; }
+      button {
+        padding: 10px 18px;
+        font-size: 0.95rem;
+        background: #1a1a1a;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      #log {
+        margin-top: 20px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.85rem;
+        background: #0d1117;
+        color: #d1d5db;
+        padding: 12px 14px;
+        border-radius: 8px;
+        white-space: pre-wrap;
+        min-height: 200px;
+      }
+      .ok { color: #4ade80; }
+      .err { color: #f87171; }
+      .info { color: #60a5fa; }
+    </style>
+  </head>
+  <body>
+    <h1>ullm — Private LLM, browser client</h1>
+    <p>
+      This page loads the WASM client primitives, fetches an attestation
+      bundle from a running <code>ullm-gateway</code>, runs the PQXDH-shaped
+      handshake, streams an encrypted prompt to the TEE, decrypts the
+      response, and verifies the signed receipt.
+    </p>
+
+    <div class="config">
+      <label>Gateway base URL (HTTPS)</label>
+      <input id="gw" value="https://127.0.0.1:9100" />
+      <label>Trust-root public key (hex32)</label>
+      <input id="trustRoot" placeholder="64 hex chars of attest issuer pk" />
+      <label>TEE receipt-signer public key (hex32)</label>
+      <input id="teePk" placeholder="64 hex chars of receipt-signer pk" />
+      <label>Expected weight commitment (hex32)</label>
+      <input id="weightCommit" placeholder="64 hex chars from /v1/devkeys" />
+      <label>Prompt</label>
+      <input id="prompt" value="say hi to the world" />
+    </div>
+
+    <button id="run">Run encrypted session</button>
+
+    <div id="log"></div>
+
+    <script type="module">
+      import init, { ClientSession } from "../pkg/ullm_ts.js";
+
+      const logEl = document.getElementById("log");
+      const append = (line, klass = "") => {
+        const span = document.createElement("span");
+        if (klass) span.className = klass;
+        span.textContent = line + "\n";
+        logEl.appendChild(span);
+      };
+
+      // P6 demo-security: cap pasted hex input so a user dropping a
+      // 100MB string into the trust-root field doesn't crash the tab
+      // before the length-check below reports the actual problem.
+      // 2048 chars is comfortable headroom over the 64 we ever actually
+      // accept.
+      const HEX_INPUT_CAP = 2048;
+      const hexDecode = (s) => {
+        if (typeof s !== "string" || s.length > HEX_INPUT_CAP) {
+          throw new Error(`hex input too long (cap ${HEX_INPUT_CAP} chars)`);
+        }
+        if (!/^[0-9a-fA-F]*$/.test(s)) {
+          throw new Error("hex input contains non-hex characters");
+        }
+        if (s.length % 2 !== 0) {
+          throw new Error("hex input must have an even length");
+        }
+        const out = new Uint8Array(s.length / 2);
+        for (let i = 0; i < out.length; i++) {
+          out[i] = parseInt(s.substr(i * 2, 2), 16);
+        }
+        return out;
+      };
+
+      const concat = (...arrs) => {
+        const total = arrs.reduce((n, a) => n + a.byteLength, 0);
+        const out = new Uint8Array(total);
+        let off = 0;
+        for (const a of arrs) {
+          out.set(a, off);
+          off += a.byteLength;
+        }
+        return out;
+      };
+
+      const randomNonce = () => {
+        const n = new Uint8Array(32);
+        crypto.getRandomValues(n);
+        return n;
+      };
+
+      const hex = (a) =>
+        Array.from(a)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+
+      const button = document.getElementById("run");
+
+      async function run() {
+        button.disabled = true;
+        logEl.textContent = "";
+        try {
+          await init();
+          const gwRaw = document.getElementById("gw").value.trim();
+          // P6 demo-security: pre-validate the gateway URL so a typo
+          // like "javascript:..." or "data:..." can't slip past the
+          // protocol-strip below. Only https:// + localhost http://
+          // are permitted; ws://wss:// derivation is downstream.
+          let parsedGw;
+          try {
+            parsedGw = new URL(gwRaw);
+          } catch (_) {
+            throw new Error("gateway must be an absolute URL");
+          }
+          const isLocalhost =
+            parsedGw.hostname === "localhost" ||
+            parsedGw.hostname === "127.0.0.1" ||
+            parsedGw.hostname === "[::1]";
+          if (parsedGw.protocol === "https:") {
+            // ok
+          } else if (parsedGw.protocol === "http:" && isLocalhost) {
+            // ok — loopback HTTP is acceptable for the dev path
+          } else {
+            throw new Error(
+              "gateway must be HTTPS (or http://localhost for the dev path)"
+            );
+          }
+          const gw = gwRaw.replace(/\/$/, "");
+          const trustRootHex = document.getElementById("trustRoot").value.trim();
+          const teePkHex = document.getElementById("teePk").value.trim();
+          const weightCommitHex = document
+            .getElementById("weightCommit")
+            .value.trim();
+          const prompt = document.getElementById("prompt").value;
+
+          if (
+            trustRootHex.length !== 64 ||
+            teePkHex.length !== 64 ||
+            weightCommitHex.length !== 64
+          ) {
+            throw new Error(
+              "trust_root, tee_pk, and weight_commit must each be 64 hex chars (32 bytes)"
+            );
+          }
+          const trustRoot = hexDecode(trustRootHex);
+          const teePk = hexDecode(teePkHex);
+          const weightCommit = hexDecode(weightCommitHex);
+
+          append("→ fetching attestation bundle…", "info");
+          const nonce = randomNonce();
+          const resp = await fetch(`${gw}/v1/attest?nonce=${hex(nonce)}`);
+          if (!resp.ok) throw new Error(`attest HTTP ${resp.status}`);
+          const bundle = new Uint8Array(await resp.arrayBuffer());
+          append(`  bundle: ${bundle.byteLength} bytes`, "ok");
+
+          append("→ starting WASM client session…", "info");
+          const now = BigInt(Math.floor(Date.now() / 1000));
+          const session = ClientSession.start(
+            bundle,
+            nonce,
+            trustRoot,
+            teePk,
+            weightCommit,
+            now
+          );
+
+          append("→ opening WebSocket /v1/stream…", "info");
+          const wsUrl = gw.replace(/^http/, "ws") + "/v1/stream";
+          const ws = new WebSocket(wsUrl);
+          ws.binaryType = "arraybuffer";
+          await new Promise((res, rej) => {
+            ws.onopen = res;
+            ws.onerror = (e) => rej(e);
+          });
+
+          append("→ sending ClientHello…", "info");
+          ws.send(session.clientHelloBytes());
+
+          const queue = [];
+          let resolver = null;
+          ws.onmessage = (ev) => {
+            const bytes = new Uint8Array(ev.data);
+            if (resolver) {
+              const r = resolver;
+              resolver = null;
+              r(bytes);
+            } else {
+              queue.push(bytes);
+            }
+          };
+          const nextFrame = () =>
+            new Promise((res) => {
+              if (queue.length > 0) res(queue.shift());
+              else resolver = res;
+            });
+
+          const serverHello = await nextFrame();
+          append(`  ServerHello: ${serverHello.byteLength} bytes`, "ok");
+          session.complete(serverHello);
+
+          append(`→ encrypting prompt "${prompt}"…`, "info");
+          const promptFrame = session.encrypt(new TextEncoder().encode(prompt));
+          ws.send(promptFrame);
+
+          append("→ decrypting streamed response:", "info");
+          let assembled = "";
+          while (true) {
+            const frame = await nextFrame();
+            const r = session.decrypt(frame);
+            if (r.text) {
+              assembled += r.text;
+              append(`  ← ${r.text}`);
+            }
+            if (r.endOfTurn) break;
+          }
+          append(`  full response: ${assembled}`, "ok");
+
+          append("→ verifying signed receipt…", "info");
+          const receiptBytes = await nextFrame();
+          const receipt = session.verifyReceipt(receiptBytes);
+          append(
+            `  ✓ receipt: model=${receipt.model} input=${receipt.inputTokens} output=${receipt.outputTokens} session=${receipt.sessionIdHex}`,
+            "ok"
+          );
+
+          ws.close();
+          append("✓ session complete", "ok");
+        } catch (e) {
+          append(`✗ ${e?.stack ?? e}`, "err");
+        } finally {
+          button.disabled = false;
+        }
+      }
+
+      button.addEventListener("click", run);
+    </script>
+  </body>
+</html>

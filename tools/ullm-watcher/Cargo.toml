@@ -1,0 +1,39 @@
+[package]
+name = "ullm-watcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Phase 3 fraud-proof watcher. Re-derives the model, recomputes activation commitments, and reports the first divergent layer."
+
+[[bin]]
+name = "ullm-watcher"
+path = "src/main.rs"
+
+[lib]
+name = "ullm_watcher"
+path = "src/lib.rs"
+
+[dependencies]
+ullm-core = { workspace = true }
+ullm-model = { workspace = true }
+ullm-receipts = { workspace = true }
+ullm-attest = { workspace = true }
+ullm-transparency = { workspace = true }
+ullm-zk = { workspace = true }
+ed25519-dalek = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+postcard = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true }
+ed25519-dalek = { workspace = true }
+sha2 = { workspace = true }
+postcard = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+ullm-transparency = { workspace = true }

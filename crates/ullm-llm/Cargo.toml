@@ -1,0 +1,25 @@
+[package]
+name = "ullm-llm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Real LLM adapter for the InferenceEngine trait. Loads a safetensors model via candle behind the `candle` feature; falls back to a deterministic byte-pair-tokenized echo when the feature is off."
+
+[features]
+default = []
+# Enable real inference. Pulls candle-core + candle-transformers. Build is
+# heavy; off by default so the rest of the workspace stays fast to compile.
+candle = ["dep:candle-core", "dep:candle-transformers", "dep:tokenizers"]
+
+[dependencies]
+ullm-core = { workspace = true }
+serde = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+candle-core = { version = "0.7", optional = true, default-features = false }
+candle-transformers = { version = "0.7", optional = true, default-features = false }
+tokenizers = { version = "0.20", optional = true, default-features = false, features = ["onig"] }
+
+[dev-dependencies]
+tokio = { workspace = true }

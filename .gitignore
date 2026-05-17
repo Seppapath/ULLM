@@ -1,0 +1,24 @@
+/target
+# P12-FIX-A: Cargo.lock IS committed for this workspace. It produces
+# binary artifacts (ullm-gateway, ullm-tee) whose reproducibility and
+# supply-chain integrity depend on the locked transitive-dep versions.
+# CI's `cargo audit` and the `prod-binary strings check` both rely on
+# the locked tree being byte-stable across runs.
+*.pem
+*.key
+
+# Audit packet tarballs are generated artifacts produced by
+# scripts/build_audit_packet.sh. They're large (~1 MB), filenames
+# embed the git SHA, and they're easy to regenerate. Don't track.
+audit-packet-*.tar.gz
+.env
+.vscode
+.idea
+node_modules
+dist
+pkg
+*.wasm
+__pycache__
+*.pyc
+.pytest_cache
+.venv

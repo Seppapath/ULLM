@@ -1,0 +1,18 @@
+[package]
+name = "ullm-tls"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Self-signed cert generation + rustls server/client configs for ullm services."
+
+[dependencies]
+rustls = { workspace = true }
+rustls-post-quantum = { workspace = true }
+rustls-pemfile = { workspace = true }
+rustls-pki-types = { workspace = true }
+rcgen = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+# `rcgen` already transitively depends on `time`; pulling it in directly lets
+# us set explicit cert validity windows (P2-8) without a fragile re-export.
+time = { version = "0.3", default-features = false, features = ["std"] }
